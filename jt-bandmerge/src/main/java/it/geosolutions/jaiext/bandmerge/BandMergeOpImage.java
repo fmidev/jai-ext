@@ -761,8 +761,12 @@ public class BandMergeOpImage extends PointOpImage {
                     }
 
                     short[] dstdatabandb = dstdata[db];
-                    short[][] srcdata = (short[][]) simd.data;
-                    short[] srcdatabandsb = srcdata[sb];
+                    // Expecting the source data to be short type.
+                    // But, in some cases, part of data may be given as bytes (alpha?).
+                    // Depending on the source data, one of srcdatabandsb
+                    // and srcdatabandsbbyte will contain data and other one remains null.
+                    short[] srcdatabandsb = simd.getShortData(sb);
+                    byte[] srcdatabandsbbyte = simd.getByteData(sb);
                     int srcstart = simd.bandOffsets[sb];
                     int dststart = dimd.bandOffsets[db];
 
@@ -770,8 +774,8 @@ public class BandMergeOpImage extends PointOpImage {
                     for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
                         // Cycle on the x-axis
                         for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
-
-                            dstdatabandb[dstpos] = srcdatabandsb[srcpos];
+                            // Make sure correct source data type is used (byte vs short).
+                            dstdatabandb[dstpos] = srcdatabandsb != null ? srcdatabandsb[srcpos] : (short)(srcdatabandsbbyte[srcpos]);
                         }
                     }
                 }
@@ -806,15 +810,21 @@ public class BandMergeOpImage extends PointOpImage {
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
                                 short[] dstdatabandb = dstdata[dbidx];
-                                short[][] srcdata = (short[][]) simd.data;
-                                short[] srcdatabandsb = srcdata[sb];
+                                // Expecting the source data to be short type.
+                                // But, in some cases, part of data may be given as bytes (alpha?).
+                                // and srcdatabandsbbyte will contain data and other one remains null.
+                                short[] srcdatabandsb = simd.getShortData(sb);
+                                byte[] srcdatabandsbbyte = simd.getByteData(sb);
 
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
-                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = srcdatabandsb[srcpos
-                                        + simd.bandOffsets[sb]];
+                                // Make sure correct source data type is used (byte vs short).
+                                dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] =
+                                    srcdatabandsb != null ?
+                                        srcdatabandsb[srcpos + simd.bandOffsets[sb]] :
+                                            (short)(srcdatabandsbbyte[srcpos + simd.bandOffsets[sb]]);
                             }
                         } else {
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
@@ -856,19 +866,25 @@ public class BandMergeOpImage extends PointOpImage {
 
                     // Source and destination data array
                     short[] dstdatabandb = dstdata[db];
-                    short[][] srcdata = (short[][]) simd.data;
-                    short[] srcdatabandsb = srcdata[sb];
+                    // Expecting the source data to be short type.
+                    // But, in some cases, part of data may be given as bytes (alpha?).
+                    // Depending on the source data, one of srcdatabandsb
+                    // and srcdatabandsbbyte will contain data and other one remains null.
+                    short[] srcdatabandsb = simd.getShortData(sb);
+                    byte[] srcdatabandsbbyte = simd.getByteData(sb);
                     int srcstart = simd.bandOffsets[sb];
                     int dststart = dimd.bandOffsets[db];
                     // Cycle on the y-axis
                     for (int y = 0; y < destRect.height; y++, srcstart += srcLineStride, dststart += dstLineStride) {
                         // Cycle on the x-axis
                         for (int i = 0, srcpos = srcstart, dstpos = dststart; i < dRectWidth; i++, srcpos += srcPixelStride, dstpos += dstPixelStride) {
+                            // Make sure correct source data type is used (byte vs short).
+                            final short value = srcdatabandsb != null ? srcdatabandsb[srcpos] : (short)(srcdatabandsbbyte[srcpos]);
                             // No Data control
-                            if (noData[sindex].contains(srcdatabandsb[srcpos])) {
+                            if (noData[sindex].contains(value)) {
                                 dstdatabandb[dstpos] = destNoDataShort;
                             } else {
-                                dstdatabandb[dstpos] = srcdatabandsb[srcpos];
+                                dstdatabandb[dstpos] = value;
                             }
                         }
                     }
@@ -904,16 +920,24 @@ public class BandMergeOpImage extends PointOpImage {
                             for (int sb = 0; sb < snbands[sindex]; sb++) {
                                 int dbidx = db + sb;
                                 short[] dstdatabandb = dstdata[dbidx];
-                                short[][] srcdata = (short[][]) simd.data;
-                                short[] srcdatabandsb = srcdata[sb];
+                                // Expecting the source data to be short type.
+                                // But, in some cases, part of data may be given as bytes (alpha?).
+                                // Depending on the source data, one of srcdatabandsb
+                                // and srcdatabandsbbyte will contain data and other one remains null.
+                                short[] srcdatabandsb = simd.getShortData(sb);
+                                byte[] srcdatabandsbbyte = simd.getByteData(sb);
 
                                 if (db >= dnbands) {
                                     // exceeding destNumBands; should not have happened
                                     break;
                                 }
 
+                                // Make sure correct source data type is used (byte vs short).
+                                final short value =
+                                                srcdatabandsb != null ?
+                                                    srcdatabandsb[srcpos + simd.bandOffsets[sb]] :
+                                                        (short)(srcdatabandsbbyte[srcpos + simd.bandOffsets[sb]]);
                                 // No Data control
-                                final short value = srcdatabandsb[srcpos + simd.bandOffsets[sb]];
                                 if (noData[sindex].contains(value)) {
                                     dstdatabandb[dstpos + dimd.bandOffsets[dbidx]] = destNoDataShort;
                                 } else {
